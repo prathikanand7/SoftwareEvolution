@@ -40,8 +40,10 @@ int getNumberOfForLoops(list[Declaration] asts) {
 // 2 Most occurring *variable* identifier(s) and frequency
 // ---------------------------------------------------------------------------
 tuple[int, list[str]] mostOccurringVariables(list[Declaration] asts) {
+  // placeholder for frequencies of variable names
   map[str,int] freq = ();
 
+  // collect frequencies of variable names from all ASTs
   for (Declaration d <- asts) {
     try
       visit (d) {
@@ -54,8 +56,12 @@ tuple[int, list[str]] mostOccurringVariables(list[Declaration] asts) {
 
   if (freq == ()) return <0, []>;
 
+  // best holds the highest frequency found
+  // winners holds all variable names with that frequency
   int best = 0;
   list[str] winners = [];
+
+  // loop over all collected frequencies to find the best ones
   for (str k <- domain(freq)) {
     int v = freq[k];
     if (v > best) { 
@@ -65,6 +71,7 @@ tuple[int, list[str]] mostOccurringVariables(list[Declaration] asts) {
       winners += [k]; 
     }
   }
+  // return best frequency and lexicographically sorted list of variable names
   return <best, sort(winners)>;
 }
 
@@ -73,6 +80,8 @@ tuple[int, list[str]] mostOccurringVariables(list[Declaration] asts) {
 // ---------------------------------------------------------------------------
 tuple[int, list[str]] mostOccurringNumber(list[Declaration] asts) {
   map[str,int] freq = ();
+
+  // Same structure as variables, but matches literal constructors.
 
   for (Declaration d <- asts) {
     try
@@ -114,6 +123,7 @@ tuple[int, list[str]] mostOccurringNumber(list[Declaration] asts) {
 // ---------------------------------------------------------------------------
 list[loc] findNullReturned(list[Declaration] asts) {
   list[loc] L = [];
+  // visit all ASTs and collect locations of `return null;`
   visit (asts) {
     case \return(\nullLiteral()):
       L += [ locOf(\return(\nullLiteral())) ];
