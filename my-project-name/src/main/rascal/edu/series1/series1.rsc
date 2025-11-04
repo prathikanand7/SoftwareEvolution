@@ -116,17 +116,92 @@ void main() {
   list[Declaration] asts = getASTs(|project://smallsql0.21_src|);
 
   int volume = getVolume(asts);
-  println("Volume (LOC): <volume>");
+  str volumeScore = getVolumeScore(volume);
+  println("Volume (LOC): <volume> - Score: <volumeScore>");
 
   int unitSize = getUnitSize(asts);
-  println("Average Unit Size (LOC per method): <unitSize>");
+  str unitSizeScore = getUnitSizeScore(unitSize);
+  println("Average Unit Size (LOC per method): <unitSize> - Score: <unitSizeScore>");
 
   int unitComplexity = getUnitComplexity(asts);
-  println("Total Unit Complexity (Cyclomatic count): <unitComplexity>");
+  str unitComplexityScore = getUnitComplexityScore(unitComplexity);
+  println("Total Unit Complexity (Cyclomatic count): <unitComplexity> - Score: <unitComplexityScore>");
 
   int duplication = getDuplication(asts);
-  println("Duplication (% of duplicated lines): <duplication>");
+  str duplicationScore = getDuplicationScore(duplication);
+  println("Duplication (% of duplicated lines): <duplication> - Score: <duplicationScore>");
 
   int testCoverage = getTestCoverage(asts);
-  println("Test Coverage (approx % of test classes): <testCoverage>");
+  str testCoverageScore = getTestCoverageScore(testCoverage);
+  println("Test Coverage (approx % of test classes): <testCoverage> - Score: <testCoverageScore>");
+}
+
+str getVolumeScore(int locCount) {
+  if (locCount <= 66000) {
+    return "++";
+  } else if (locCount <= 246000) {
+    return "+";
+  } else if (locCount <= 665000) {
+    return "o";
+  } else if (locCount <= 1310000) {
+    return "-";
+  } else {
+    return "--";
+  }
+}
+
+str getUnitSizeScore(int avgSize) {
+  if (avgSize <= 30) {
+    return "++";
+  } else if (avgSize <= 60) {
+    return "+";
+  } else if (avgSize <= 90) {
+    return "o";
+  } else if (avgSize <= 120) {
+    return "-";
+  } else {
+    return "--";
+  }
+}
+
+str getUnitComplexityScore(int complexity) {
+  if (complexity <= 200) {
+    return "++";
+  } else if (complexity <= 400) {
+    return "+";
+  } else if (complexity <= 800) {
+    return "o";
+  } else if (complexity <= 1600) {
+    return "-";
+  } else {
+    return "--";
+  }
+}
+
+str getDuplicationScore(int duplication) {
+  if (duplication <= 3) {
+    return "++";
+  } else if (duplication <= 5) {
+    return "+";
+  } else if (duplication <= 10) {
+    return "o";
+  } else if (duplication <= 20) {
+    return "-";
+  } else {
+    return "--";
+  }
+}
+
+str getTestCoverageScore(int coverage) {
+  if (coverage >= 80) {
+    return "++";
+  } else if (coverage >= 60) {
+    return "+";
+  } else if (coverage >= 40) {
+    return "o";
+  } else if (coverage >= 20) {
+    return "-";
+  } else {
+    return "--";
+  }
 }
