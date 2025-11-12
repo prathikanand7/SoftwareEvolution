@@ -117,11 +117,19 @@ public int calculateUnitSize(list[Declaration] asts) {
   int totalSize = 0;
   int unitCount = 0;
   visit(asts) {
-    case \methodDeclaration(_, _, _, _, _, _, body, _): {
-      str bodyText = toString(body);
-      list[str] lines = split("\n", bodyText);
-      totalSize += size(lines);
-      unitCount += 1;
+    case m:\method(_, _, _, _, _, _, body): {
+      if (body.src?) {
+        int methodSize = body.src.end.line - body.src.begin.line + 1;
+        totalSize += methodSize;
+        unitCount += 1;
+      }
+    }
+    case c:\constructor(_, _, _, body): {
+      if (body.src?) {
+        int methodSize = body.src.end.line - body.src.begin.line + 1;
+        totalSize += methodSize;
+        unitCount += 1;
+      }
     }
   }
   return unitCount == 0 ? 0 : totalSize / unitCount;
@@ -145,7 +153,7 @@ public int calculateUnitComplexity(list[Declaration] asts) {
   int unitCount = 0;
   
   visit(asts) {
-    case \methodDeclaration(_, _, _, _, _, _, body, _): {
+    case \methodDeclaration(_, _, _, _, _, _, body): {
       int methodComplexity = 1; // Base complexity
       visit(body) {
         case \if(_,_,_): methodComplexity += 1;
@@ -184,7 +192,7 @@ public int calculateTestCoverage(loc projectLocation) {
   int totalClasses = 0;
 
   for (loc f <- getJavaFiles(projectLocation)) {
-    str path = toString(f);
+    str path = f.path;
     if (startsWith(path, "project://") && endsWith(path, ".java")) {
       totalClasses += 1;
       if (/test/i := path || /Test/ := path) {
@@ -215,20 +223,22 @@ public int calculateTestQuality(list[Declaration] asts, int testCoverage) {
   int testMethods = 0;
   
   visit(asts) {
-    case \methodDeclaration(_, _, _, _, _, _, body, _): {
-      str methodStr = toString(body);
-      if (/test/i := methodStr || /Test/ := methodStr || /assert/i := methodStr) {
+    case m:\method(_, _, _, \id(name, _), _, _, Statement body): {
+      // Check if it's a test method by name
+      if (/test/i := name || /Test/ := name) {
         int methodComplexity = 1; // Base complexity
         visit(body) {
+          case \if(_,_): methodComplexity += 1;
           case \if(_,_,_): methodComplexity += 1;
-          case \for(_,_,_,_,_,_): methodComplexity += 1;
-          case \enhancedFor(_,_,_,_,_,_): methodComplexity += 1;
-          case \while(_,_,_): methodComplexity += 1;
-          case \case(_,_,_): methodComplexity += 1;
-          case \catch(_,_,_): methodComplexity += 1;
-          case \doWhile(_,_,_): methodComplexity += 1;
-          case \switch(_,_,_): methodComplexity += 1;
-          case \conditionalExpression(_,_,_): methodComplexity += 1;
+          case \for(_,_,_): methodComplexity += 1;
+          case \for(_,_,_,_): methodComplexity += 1;
+          case \foreach(_,_,_): methodComplexity += 1;
+          case \while(_,_): methodComplexity += 1;
+          case \case(_): methodComplexity += 1;
+          case \catch(_,_): methodComplexity += 1;
+          case \do(_,_): methodComplexity += 1;
+          case \switch(_,_): methodComplexity += 1;
+          case \conditional(_,_,_): methodComplexity += 1;
         }
         testComplexity += methodComplexity;
         testMethods += 1;

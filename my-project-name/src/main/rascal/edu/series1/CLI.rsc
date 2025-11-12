@@ -7,6 +7,8 @@ import edu::series1::Scoring;
 import edu::series1::Config;
 import IO;
 import String;
+import lang::java::m3::AST;
+import lang::java::m3::Core;
 
 /**
  * CLI module - wires all components together and produces formatted output
@@ -76,18 +78,22 @@ public void analyzeProject(loc projectLocation, str projectName) {
   int coupling = calculateCoupling(asts);
   
   // Calculate risk profiles
-  tuple[int, int, int] sizeRisk = calculateUnitSizeRiskProfile(asts);
-  tuple[int, int, int] complexRisk = calculateUnitComplexityRiskProfile(asts);
+  tuple[int, int, int, int] sizeRisk = calculateUnitSizeRiskProfile(asts);
+  tuple[int, int, int, int] complexRisk = calculateUnitComplexityRiskProfile(asts);
   
   // Extract constants and computed values for string interpolation
   int sizeRiskLow = UNIT_SIZE_RISK_LOW;
   int sizeRiskMedium = UNIT_SIZE_RISK_MEDIUM;
+  int sizeRiskHigh = UNIT_SIZE_RISK_HIGH;
   int complexRiskLow = UNIT_COMPLEXITY_RISK_LOW;
   int complexRiskMedium = UNIT_COMPLEXITY_RISK_MEDIUM;
+  int complexRiskHigh = UNIT_COMPLEXITY_RISK_HIGH;
   int sizeRiskLowPlus1 = sizeRiskLow + 1;
+  int sizeRiskMediumPlus1 = sizeRiskMedium + 1;
   int complexRiskLowPlus1 = complexRiskLow + 1;
-  int totalSizeRisk = sizeRisk[0] + sizeRisk[1] + sizeRisk[2];
-  int totalComplexRisk = complexRisk[0] + complexRisk[1] + complexRisk[2];
+  int complexRiskMediumPlus1 = complexRiskMedium + 1;
+  int totalSizeRisk = sizeRisk[0] + sizeRisk[1] + sizeRisk[2] + sizeRisk[3];
+  int totalComplexRisk = complexRisk[0] + complexRisk[1] + complexRisk[2] + complexRisk[3];
   
   // Calculate scores
   str volumeScore = scoreVolume(volume);
@@ -150,20 +156,22 @@ public void analyzeProject(loc projectLocation, str projectName) {
   println("Coupling (avg deps/class):        <coupling> <couplingScore>");
   println();
   
-  // Print risk profiles with verification
+// Print risk profiles with verification
   println("RISK PROFILES");
   println(repeatChar("-", 80));
   println("Unit Size Risk Distribution:");
-  println("  Low (up to <sizeRiskLow> LOC):    <sizeRisk[0]> methods");
-  println("  Medium (<sizeRiskLowPlus1> to <sizeRiskMedium>):    <sizeRisk[1]> methods");
-  println("  High (over <sizeRiskMedium> LOC):    <sizeRisk[2]> methods");
-  println("  Verification: <sizeRisk[0]> + <sizeRisk[1]> + <sizeRisk[2]> = <totalSizeRisk> (should equal <totalMethods>)");
+  println("  Low (up to <sizeRiskLow> LOC):        <sizeRisk[0]> methods");
+  println("  Medium (<sizeRiskLowPlus1> to <sizeRiskMedium> LOC): <sizeRisk[1]> methods");
+  println("  High (<sizeRiskMediumPlus1> to <sizeRiskHigh> LOC):   <sizeRisk[2]> methods");
+  println("  Very High (over <sizeRiskHigh> LOC):     <sizeRisk[3]> methods");
+  println("  Verification: <sizeRisk[0]> + <sizeRisk[1]> + <sizeRisk[2]> + <sizeRisk[3]> = <totalSizeRisk> (should equal <totalMethods>)");
   println();
   println("Unit Complexity Risk Distribution:");
-  println("  Low (up to <complexRiskLow> CC):      <complexRisk[0]> methods");
-  println("  Medium (<complexRiskLowPlus1> to <complexRiskMedium> CC):  <complexRisk[1]> methods");
-  println("  High (over <complexRiskMedium> CC):     <complexRisk[2]> methods");
-  println("  Verification: <complexRisk[0]> + <complexRisk[1]> + <complexRisk[2]> = <totalComplexRisk> (should equal <totalMethods>)");
+  println("  Low (up to <complexRiskLow> CC):          <complexRisk[0]> methods");
+  println("  Medium (<complexRiskLowPlus1> to <complexRiskMedium> CC):    <complexRisk[1]> methods");
+  println("  High (<complexRiskMediumPlus1> to <complexRiskHigh> CC):      <complexRisk[2]> methods");
+  println("  Very High (over <complexRiskHigh> CC):       <complexRisk[3]> methods");
+  println("  Verification: <complexRisk[0]> + <complexRisk[1]> + <complexRisk[2]> + <complexRisk[3]> = <totalComplexRisk> (should equal <totalMethods>)");
   println();
   
   // Precompute arithmetic expressions for string interpolation

@@ -194,16 +194,32 @@ import edu::series1::CLI;
 CLI::analyzeProject(|project://myproject|, "MyProject");
 ```
 
+```
+import edu::series1::CLI;
+
+//SmallSQL (default in main)
+edu::series1::CLI::analyzeProject(|project://smallsql0.21_src|, "SmallSQL");
+
+//HSQLDB (adjust to your checked-out project name/location)
+edu::series1::CLI::analyzeProject(|project://hsqldb|, "HSQLDB");
+```
+
+
 ### Using Individual Modules
 ```rascal
 import edu::series1::Metrics;
 import edu::series1::Scoring;
 import edu::series1::JavaModel;
 
-list[Declaration] asts = JavaModel::loadASTs(|project://myproject|);
+list[Declaration] asts = JavaModel::loadASTs(|project://smallsql0.21_src|);
 int volume = Metrics::calculateVolume(|project://myproject|);
 str score = Scoring::scoreVolume(volume);
 ```
+
+import lang::java::m3::Core;
+M3 m = createM3FromMavenProject(|project://smallsql0.21_src|);
+size(files(m.containment));   
+
 
 ### Testing
 ```rascal

@@ -1,8 +1,7 @@
 module edu::series1::Config
 
 // ============================================================================
-// Configuration for thresholds and weights used by Scoring.rsc
-// Keep these as simple public ints so Scoring can import them.
+// Configuration for thresholds and weights used by SIG Maintainability Model
 // All values are easy to tune and should be justified in your report.
 // ============================================================================
 
@@ -26,6 +25,7 @@ public int UNIT_COMPLEXITY_THRESHOLD_NEUTRAL  = 20;
 public int UNIT_COMPLEXITY_THRESHOLD_MINUS    = 40;
 
 // Duplication percentage — lower is better.
+public int DUPLICATION_BLOCK_SIZE = 20; 
 public int DUPLICATION_THRESHOLD_PLUSPLUS = 3;
 public int DUPLICATION_THRESHOLD_PLUS     = 5;
 public int DUPLICATION_THRESHOLD_NEUTRAL  = 10;

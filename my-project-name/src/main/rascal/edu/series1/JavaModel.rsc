@@ -1,9 +1,11 @@
 module edu::series1::JavaModel
 
-import edu::series0::SmallsqlAnalysis;
 import lang::java::m3::Core;
 import lang::java::m3::AST;
+import Set;
+import List;
 import IO;
+import Map;
 
 /**
  * JavaModel module - handles all I/O operations and Java project loading
@@ -24,9 +26,20 @@ import IO;
  * @param projectLocation - Location of the Java project (Maven-style)
  * @return List of AST declarations from all compilation units
  */
+list[Declaration] getASTs(loc projectLocation) {
+  M3 m = createM3FromMavenProject(projectLocation);
+  return [ createAstFromFile(f, true) | f <- files(m.containment), isCompilationUnit(f) ];
+}
+/**
+ * Public wrapper to load ASTs from a Java project
+ * 
+ * @param projectLocation - Location of the Java project
+ * @return List of AST declarations
+ */
 public list[Declaration] loadASTs(loc projectLocation) {
   return getASTs(projectLocation);
 }
+
 
 /**
  * Create M3 model from a Maven project
@@ -73,10 +86,13 @@ public tuple[int, int] getProjectStats(list[Declaration] asts) {
   int classCount = 0;
   
   visit(asts) {
-    case \methodDeclaration(_, _, _, _, _, _, _, _): methodCount += 1;
-    case \class(_, _, _, _, _, _, _): classCount += 1;
+    case \method(_, _, _, _, _, _, _): 
+      methodCount += 1;
+    case \class(_, _, _, _, _, _): 
+      classCount += 1;
+    case \interface(_, _, _, _, _, _): 
+      classCount += 1;
   }
   
   return <methodCount, classCount>;
 }
-

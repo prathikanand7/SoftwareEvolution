@@ -1,5 +1,7 @@
 module edu::series1::Scoring
 
+import lang::java::m3::Core;
+import lang::java::m3::AST;
 import edu::series1::Config;
 import List;
 import String;
@@ -145,18 +147,45 @@ public str scoreCoupling(int coupling) {
  * @param methodLocs - list of LOC per method
  * @return Tuple with (low_count, medium_count, high_count, veryHigh_count)
  */
-public tuple[int, int, int, int] calculateUnitSizeRiskProfile(list[int] methodLocs) {
+/**
+ * Calculate risk profile for unit size
+ *
+ * Risk categories:
+ * - Low: <= 15 LOC
+ * - Medium: 16–30 LOC
+ * - High: 31–60 LOC
+ * - Very High: > 60 LOC
+ *
+ * @param asts - List of AST declarations
+ * @return Tuple with (low_count, medium_count, high_count, veryHigh_count)
+ */
+public tuple[int, int, int, int] calculateUnitSizeRiskProfile(list[Declaration] asts) {
   int low = 0;
   int medium = 0;
   int high = 0;
   int veryHigh = 0;
 
-  for (int size <- methodLocs) {
-    if (size <= UNIT_SIZE_RISK_LOW)            low += 1;
-    else if (size <= UNIT_SIZE_RISK_MEDIUM)    medium += 1;
-    else if (size <= UNIT_SIZE_RISK_HIGH)      high += 1;
-    else                                       veryHigh += 1;
+  visit(asts) {
+    case m:\method(_, _, _, _, _, _, Statement body): {
+      if (body.src?) {
+        int size = body.src.end.line - body.src.begin.line + 1;
+        if (size <= UNIT_SIZE_RISK_LOW)            low += 1;
+        else if (size <= UNIT_SIZE_RISK_MEDIUM)    medium += 1;
+        else if (size <= UNIT_SIZE_RISK_HIGH)      high += 1;
+        else                                       veryHigh += 1;
+      }
+    }
+    case c:\constructor(_, _, _, Statement body): {
+      if (body.src?) {
+        int size = body.src.end.line - body.src.begin.line + 1;
+        if (size <= UNIT_SIZE_RISK_LOW)            low += 1;
+        else if (size <= UNIT_SIZE_RISK_MEDIUM)    medium += 1;
+        else if (size <= UNIT_SIZE_RISK_HIGH)      high += 1;
+        else                                       veryHigh += 1;
+      }
+    }
   }
+  
   return <low, medium, high, veryHigh>;
 }
 
@@ -172,22 +201,61 @@ public tuple[int, int, int, int] calculateUnitSizeRiskProfile(list[int] methodLo
  * IMPORTANT: Previously this walked the AST. To keep Scoring pure and fix
  * parse errors, this function now expects per-method McCabe values.
  *
- * @param methodComplexities - list of McCabe per method
+ * @param asts - list of AST declarations
  * @return Tuple with (low_count, medium_count, high_count, veryHigh_count)
  */
-public tuple[int, int, int, int] calculateUnitComplexityRiskProfile(list[int] methodComplexities) {
+public tuple[int, int, int, int] calculateUnitComplexityRiskProfile(list[Declaration] asts) {
   int low = 0;
   int medium = 0;
   int high = 0;
   int veryHigh = 0;
 
-  for (int cc <- methodComplexities) {
-    if (cc <= UNIT_COMPLEXITY_RISK_LOW)            low += 1;
-    else if (cc <= UNIT_COMPLEXITY_RISK_MEDIUM)    medium += 1;
-    else if (cc <= UNIT_COMPLEXITY_RISK_HIGH)      high += 1;
-    else                                           veryHigh += 1;
+  visit(asts) {
+    case m:\method(_, _, _, _, _, _, Statement body): {
+      int cc = calculateMethodComplexity(body);
+      if (cc <= UNIT_COMPLEXITY_RISK_LOW)            low += 1;
+      else if (cc <= UNIT_COMPLEXITY_RISK_MEDIUM)    medium += 1;
+      else if (cc <= UNIT_COMPLEXITY_RISK_HIGH)      high += 1;
+      else                                           veryHigh += 1;
+    }
+    case c:\constructor(_, _, _, Statement body): {
+      int cc = calculateMethodComplexity(body);
+      if (cc <= UNIT_COMPLEXITY_RISK_LOW)            low += 1;
+      else if (cc <= UNIT_COMPLEXITY_RISK_MEDIUM)    medium += 1;
+      else if (cc <= UNIT_COMPLEXITY_RISK_HIGH)      high += 1;
+      else                                           veryHigh += 1;
+    }
   }
+  
   return <low, medium, high, veryHigh>;
+}
+
+/**
+ * Calculate cyclomatic complexity for a method body
+ * 
+ * @param body - Statement representing method body
+ * @return Cyclomatic complexity value
+ */
+private int calculateMethodComplexity(Statement body) {
+  int complexity = 1; // Base complexity
+  
+  visit(body) {
+    case \if(_,_): complexity += 1;
+    case \if(_,_,_): complexity += 1;
+    case \for(_,_,_): complexity += 1;
+    case \for(_,_,_,_): complexity += 1;
+    case \foreach(_,_,_): complexity += 1;
+    case \while(_,_): complexity += 1;
+    case \case(_): complexity += 1;
+    case \catch(_,_): complexity += 1;
+    case \do(_,_): complexity += 1;
+    case \switch(_,_): complexity += 1;
+    case \conditional(_,_,_): complexity += 1;
+    case \infix(_,"||",_): complexity += 1;
+    case \infix(_,"&&",_): complexity += 1;
+  }
+  
+  return complexity;
 }
 
 // ============================================================================
