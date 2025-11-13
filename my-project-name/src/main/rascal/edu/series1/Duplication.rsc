@@ -23,7 +23,7 @@ import String;
 /**
  * Calculate duplication percentage using k-gram approach
  * 
- * Design decision: We use k-line blocks for duplicate detection.
+ * Design decision: We are using k-line blocks for duplicate detection.
  * A block is considered duplicated if it appears more than once.
  * 
  * The block size (k) is configurable via Config module.
@@ -38,7 +38,7 @@ public int calculateDuplication(loc projectLocation) {
 /**
  * Calculate duplication with configurable block size
  * 
- * This allows experimentation with different block sizes.
+ * This allows us to do experimentation with different block sizes.
  * 
  * @param projectLocation - Location of the Java project
  * @param blockSize - Size of blocks to use for duplicate detection
@@ -82,7 +82,6 @@ public int calculateDuplicationWithBlockSize(loc projectLocation, int blockSize)
 }
 
 /**
- * Normalize a code block for comparison
  * 
  * This function can be extended to:
  * - Remove whitespace differences

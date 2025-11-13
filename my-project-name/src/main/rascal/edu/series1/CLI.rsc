@@ -68,7 +68,7 @@ public void analyzeProject(loc projectLocation, str projectName) {
   println();
   
   // Calculate metrics
-  println("Calculating metrics...");
+  println("Calculating metrics, risk profiles, maintainability aspects, and overall scores...");
   int volume = calculateVolume(projectLocation);
   int unitSize = calculateUnitSize(asts);
   int unitComplexity = calculateUnitComplexity(asts);
@@ -109,8 +109,8 @@ public void analyzeProject(loc projectLocation, str projectName) {
   str dupScore = scoreDuplication(duplication);
   int volNum = scoreToNumeric(volScore);
   int dupNum = scoreToNumeric(dupScore);
-  int analAvg = (volNum + dupNum) / 2;
-  str analysability = numericToScore(analAvg);
+  int analysisAvg = (volNum + dupNum) / 2;
+  str analysability = numericToScore(analysisAvg);
   
   str sizeScore = scoreUnitSize(unitSize);
   str complexScore = scoreUnitComplexity(unitComplexity);
@@ -120,6 +120,7 @@ public void analyzeProject(loc projectLocation, str projectName) {
   int changeAvg = (sizeNum + complexNum + dupNum2) / 3;
   str changeability = numericToScore(changeAvg);
   
+  // Test Quality calculation
   str testCoverScore = scoreTestCoverage(testCoverage);
   int testCoverNum = scoreToNumeric(testCoverScore);
   int testAvg = (sizeNum + complexNum + testCoverNum) / 3;
@@ -135,11 +136,11 @@ public void analyzeProject(loc projectLocation, str projectName) {
   str overallMaintainability = numericToScore(weighted);
   
   // Precompute values for string interpolation in maintainability aspects
-  int analNum = scoreToNumeric(analysability);
+  int analysisNum = scoreToNumeric(analysability);
   int changeNum = scoreToNumeric(changeability);
   int testNum = scoreToNumeric(testability);
   int stabNum = scoreToNumeric(stability);
-  int weightAnal = WEIGHT_ANALYSABILITY;
+  int weightAnalysis = WEIGHT_ANALYSABILITY;
   int weightChange = WEIGHT_CHANGEABILITY;
   int weightTest = WEIGHT_TESTABILITY;
   int weightStab = WEIGHT_STABILITY;
@@ -186,7 +187,7 @@ public void analyzeProject(loc projectLocation, str projectName) {
   println("Analysability:");
   println("  Volume: <volume> scores <volScore> (numeric: <volNum>)");
   println("  Duplication: <duplication>% scores <dupScore> (numeric: <dupNum>)");
-  println("  Average: <volPlusDup> / 2 = <analAvg> scores <analysability>");
+  println("  Average: <volPlusDup> / 2 = <analysisAvg> scores <analysability>");
   println();
   println("Changeability:");
   println("  Unit Size: <unitSize> scores <sizeScore> (numeric: <sizeNum>)");
@@ -205,8 +206,9 @@ public void analyzeProject(loc projectLocation, str projectName) {
   println("  Unit Complexity: <unitComplexity> scores <complexScore> (numeric: <complexNum>)");
   println("  Average: <volPlusComplex> / 2 = <stabAvg> scores <stability>");
   println();
+
   // Precompute weighted calculation parts for display
-  int weightedCalc = analNum * weightAnal + changeNum * weightChange + testNum * weightTest + stabNum * weightStab;
+  int weightedCalc = analysisNum * weightAnalysis + changeNum * weightChange + testNum * weightTest + stabNum * weightStab;
   
   println("Overall Maintainability:");
   println("  Weighted: (<weightedCalc> + 50) / 100 = <weighted>");
@@ -215,9 +217,6 @@ public void analyzeProject(loc projectLocation, str projectName) {
   println(repeatChar("=", 80));
 }
 
-/**
- * Convenience function for default project
- */
 public void main() {
   analyzeProject(|project://smallsql0.21_src|, "SmallSQL");
 }

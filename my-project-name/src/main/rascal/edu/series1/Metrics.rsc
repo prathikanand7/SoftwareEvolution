@@ -23,7 +23,7 @@ import String;
 /**
  * Calculate volume (lines of code excluding comments and blanks)
  * 
- * Design decision: We exclude:
+ * Design decision: We are excluding:
  * - Blank lines
  * - Single-line comments (//)
  * - Multi-line comments (block comments)
@@ -106,7 +106,7 @@ public int calculateVolume(loc projectLocation) {
 /**
  * Calculate average unit size (LOC per method)
  * 
- * Design decision: We count lines in method bodies by converting to string
+ * Design decision: We are counting lines in method bodies by converting to string
  * and counting newlines. This includes all statements and declarations
  * within the method body.
  * 

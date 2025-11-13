@@ -2,7 +2,7 @@ module edu::series1::Config
 
 // ============================================================================
 // Configuration for thresholds and weights used by SIG Maintainability Model
-// All values are easy to tune and should be justified in your report.
+// All values will be justified in the report.
 // ============================================================================
 
 // ---------- Metric thresholds (SIG-style banding) ----------

@@ -141,9 +141,6 @@ public str scoreCoupling(int coupling) {
  * - High: 31–60 LOC
  * - Very High: > 60 LOC
  *
- * IMPORTANT: Previously this walked the AST. To keep Scoring pure and fix
- * parse errors, this function now expects per-method LOC values.
- *
  * @param methodLocs - list of LOC per method
  * @return Tuple with (low_count, medium_count, high_count, veryHigh_count)
  */
@@ -198,8 +195,6 @@ public tuple[int, int, int, int] calculateUnitSizeRiskProfile(list[Declaration] 
  * - High: 11–20 CC
  * - Very High: > 20 CC
  *
- * IMPORTANT: Previously this walked the AST. To keep Scoring pure and fix
- * parse errors, this function now expects per-method McCabe values.
  *
  * @param asts - list of AST declarations
  * @return Tuple with (low_count, medium_count, high_count, veryHigh_count)
@@ -331,13 +326,13 @@ public str calculateStability(int volume, int unitComplexity) {
  * - Testability:   WEIGHT_TESTABILITY
  * - Stability:     WEIGHT_STABILITY
  */
-public str calculateOverallMaintainability(str analysability, str changeability, str testability, str stability) {
-  int anal  = scoreToNumeric(analysability);
+public str calculateOverallMaintainability(str analysableysability, str changeability, str testability, str stability) {
+  int analysable  = scoreToNumeric(analysableysability);
   int change= scoreToNumeric(changeability);
   int test1  = scoreToNumeric(testability);
   int stab  = scoreToNumeric(stability);
 
-  int weighted = anal  * WEIGHT_ANALYSABILITY +
+  int weighted = analysable  * WEIGHT_ANALYSABILITY +
                  change* WEIGHT_CHANGEABILITY +
                  test1 * WEIGHT_TESTABILITY +
                  stab  * WEIGHT_STABILITY;
