@@ -106,9 +106,8 @@ public int calculateVolume(loc projectLocation) {
 /**
  * Calculate average unit size (LOC per method)
  * 
- * Design decision: We are counting lines in method bodies by converting to string
- * and counting newlines. This includes all statements and declarations
- * within the method body.
+ * Design decision: We count lines in method bodies using source location spans.
+ * This includes all statements and declarations within the method body.
  * 
  * @param asts - List of AST declarations
  * @return Average lines of code per method
@@ -143,7 +142,7 @@ public int calculateUnitSize(list[Declaration] asts) {
  * Calculate average unit complexity (cyclomatic complexity per method)
  * 
  * Cyclomatic complexity = 1 (base) + number of decision points
- * Decision points: if, for, while, do-while, switch, case, catch, ternary
+ * Decision points: if, for, while, do-while, switch, case, catch, ternary, &&, ||
  * 
  * @param asts - List of AST declarations
  * @return Average cyclomatic complexity per method
@@ -153,24 +152,48 @@ public int calculateUnitComplexity(list[Declaration] asts) {
   int unitCount = 0;
   
   visit(asts) {
-    case \methodDeclaration(_, _, _, _, _, _, body): {
-      int methodComplexity = 1; // Base complexity
-      visit(body) {
-        case \if(_,_,_): methodComplexity += 1;
-        case \for(_,_,_,_,_,_): methodComplexity += 1;
-        case \enhancedFor(_,_,_,_,_,_): methodComplexity += 1;
-        case \while(_,_,_): methodComplexity += 1;
-        case \doWhile(_,_,_): methodComplexity += 1;
-        case \switch(_,_,_): methodComplexity += 1;
-        case \case(_,_,_): methodComplexity += 1;
-        case \catch(_,_,_): methodComplexity += 1;
-        case \conditionalExpression(_,_,_): methodComplexity += 1;
-      }
+    // FIXED: Use correct pattern with 7 parameters
+    case \method(_, _, _, _, _, _, Statement body): {
+      int methodComplexity = calculateMethodComplexity(body);
+      totalComplexity += methodComplexity;
+      unitCount += 1;
+    }
+    case \constructor(_, _, _, Statement body): {
+      int methodComplexity = calculateMethodComplexity(body);
       totalComplexity += methodComplexity;
       unitCount += 1;
     }
   }
+  
   return unitCount == 0 ? 0 : totalComplexity / unitCount;
+}
+
+/**
+ * Calculate cyclomatic complexity for a single method body
+ * 
+ * @param body - Statement representing method body
+ * @return Cyclomatic complexity value
+ */
+private int calculateMethodComplexity(Statement body) {
+  int complexity = 1; // Base complexity
+  
+  visit(body) {
+    case \if(_,_): complexity += 1;
+    case \if(_,_,_): complexity += 1;
+    case \for(_,_,_): complexity += 1;
+    case \for(_,_,_,_): complexity += 1;
+    case \foreach(_,_,_): complexity += 1;
+    case \while(_,_): complexity += 1;
+    case \do(_,_): complexity += 1;
+    case \switch(_,_): complexity += 1;
+    case \case(_): complexity += 1;
+    case \catch(_,_): complexity += 1;
+    case \conditional(_,_,_): complexity += 1;
+    case \infix(_,"||",_): complexity += 1;
+    case \infix(_,"&&",_): complexity += 1;
+  }
+  
+  return complexity;
 }
 
 // ============================================================================
@@ -181,7 +204,10 @@ public int calculateUnitComplexity(list[Declaration] asts) {
  * Calculate test coverage (approximate % of test classes)
  * 
  * Design decision: We approximate test coverage by counting test classes
- * (classes with "test" or "Test" in their path) vs total classes.
+ * using multiple detection methods:
+ * 1. "test" or "Test" in file path (case-insensitive)
+ * 2. "junit" in file path (case-insensitive)
+ * 3. "Test" in filename
  * 
  * @param projectLocation - Location of the Java project
  * @return Percentage of test classes (0-100)
@@ -192,12 +218,18 @@ public int calculateTestCoverage(loc projectLocation) {
   int totalClasses = 0;
 
   for (loc f <- getJavaFiles(projectLocation)) {
+    totalClasses += 1;
     str path = f.path;
-    if (startsWith(path, "project://") && endsWith(path, ".java")) {
-      totalClasses += 1;
-      if (/test/i := path || /Test/ := path) {
-        testClasses += 1;
-      }
+    str fileName = f.file;
+    
+    bool isTest = /test/i := path ||      // test in path (case-insensitive)
+                  /Test/ := path ||        // Test in path (case-sensitive)
+                  /Test/ := fileName ||    // Test in filename
+                  /junit/i := path ||      // junit in path
+                  /test/i := fileName;     // test in filename
+    
+    if (isTest) {
+      testClasses += 1;
     }
   }
 
@@ -226,20 +258,7 @@ public int calculateTestQuality(list[Declaration] asts, int testCoverage) {
     case m:\method(_, _, _, \id(name, _), _, _, Statement body): {
       // Check if it's a test method by name
       if (/test/i := name || /Test/ := name) {
-        int methodComplexity = 1; // Base complexity
-        visit(body) {
-          case \if(_,_): methodComplexity += 1;
-          case \if(_,_,_): methodComplexity += 1;
-          case \for(_,_,_): methodComplexity += 1;
-          case \for(_,_,_,_): methodComplexity += 1;
-          case \foreach(_,_,_): methodComplexity += 1;
-          case \while(_,_): methodComplexity += 1;
-          case \case(_): methodComplexity += 1;
-          case \catch(_,_): methodComplexity += 1;
-          case \do(_,_): methodComplexity += 1;
-          case \switch(_,_): methodComplexity += 1;
-          case \conditional(_,_,_): methodComplexity += 1;
-        }
+        int methodComplexity = calculateMethodComplexity(body);
         testComplexity += methodComplexity;
         testMethods += 1;
       }
@@ -280,10 +299,11 @@ public int calculateCoupling(list[Declaration] asts) {
   
   // Count method invocations and field accesses (indicators of coupling)
   visit(asts) {
-    case \methodInvocation(_, _, _, _): totalCoupling += 1;
-    case \fieldAccess(_, _, _): totalCoupling += 1;
+    case \methodCall(_,_,_,_): totalCoupling += 1;
+    case \methodCall(_,_,_): totalCoupling += 1;
+    case \fieldAccess(_,_,_): totalCoupling += 1;
+    case \fieldAccess(_,_): totalCoupling += 1;
   }
   
   return classCount == 0 ? 0 : totalCoupling / classCount;
 }
-

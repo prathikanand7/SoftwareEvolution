@@ -6,10 +6,13 @@ import lang::java::m3::Core;
 import IO;
 import List;
 import Map;
+import Set;
 import String;
 
 /**
  * Duplication module - isolated code duplication detection
+ * 
+ * It tracks unique duplicated lines instead of counting overlapping blocks
  * 
  * This module is separated to allow easy tuning of:
  * - Block size (k-gram size)
@@ -23,7 +26,7 @@ import String;
 /**
  * Calculate duplication percentage using k-gram approach
  * 
- * Design decision: We are using k-line blocks for duplicate detection.
+ * Design decision: We use k-line blocks for duplicate detection.
  * A block is considered duplicated if it appears more than once.
  * 
  * The block size (k) is configurable via Config module.
@@ -38,18 +41,24 @@ public int calculateDuplication(loc projectLocation) {
 /**
  * Calculate duplication with configurable block size
  * 
- * This allows us to do experimentation with different block sizes.
+ * It tracks unique line numbers to avoid over-counting overlapping blocks
  * 
  * @param projectLocation - Location of the Java project
  * @param blockSize - Size of blocks to use for duplicate detection
- * @return Percentage of duplicated lines (0-100)
+ * @return Percentage of duplicated lines (0-100, guaranteed <= 100)
  */
 public int calculateDuplicationWithBlockSize(loc projectLocation, int blockSize) {
   M3 m = createModel(projectLocation);
-  map[str, int] blockCounts = (); // Track how many times each block appears
-  int totalLines = 0;
-  int duplicateLines = 0;
   
+  // Map: normalized block -> list of occurrences (file, start line)
+  map[str, list[tuple[loc, int]]] blockOccurrences = ();
+  
+  // Track which lines are duplicated (file -> set of line numbers)
+  map[loc, set[int]] duplicatedLines = ();
+  
+  int totalLines = 0;
+  
+  // Phase 1: Collect all blocks and their locations
   for (loc f <- getJavaFiles(projectLocation)) {
     str content = readFileContent(f);
     if (content == "") continue;
@@ -57,31 +66,56 @@ public int calculateDuplicationWithBlockSize(loc projectLocation, int blockSize)
     list[str] lines = split("\n", content);
     totalLines += size(lines);
     
-    // Extract k-line blocks
-    for (int i <- [0 .. size(lines) - blockSize]) {
+    // Extract k-line blocks with their positions
+    for (int i <- [0 .. size(lines) - blockSize + 1]) {
       str block = normalizeBlock([lines[i + j] | j <- [0 .. blockSize]]);
       
-      // Count occurrences
-      if (block in blockCounts) {
-        blockCounts[block] = blockCounts[block] + 1;
+      // Skip empty or whitespace-only blocks
+      if (trim(block) == "") continue;
+      
+      // Record this block occurrence with its location
+      tuple[loc, int] occurrence = <f, i>;
+      if (block in blockOccurrences) {
+        blockOccurrences[block] = blockOccurrences[block] + [occurrence];
       } else {
-        blockCounts[block] = 1;
+        blockOccurrences[block] = [occurrence];
       }
     }
   }
   
-  // Count duplicate lines (blocks that appear more than once)
-  for (str block <- domain(blockCounts)) {
-    if (blockCounts[block] > 1) {
-      // All occurrences except the first are duplicates
-      duplicateLines += blockSize * (blockCounts[block] - 1);
+  // Phase 2: Mark lines as duplicated (only for blocks appearing > once)
+  for (str block <- blockOccurrences) {
+    list[tuple[loc, int]] occurrences = blockOccurrences[block];
+    
+    // Only mark as duplicate if block appears more than once
+    if (size(occurrences) > 1) {
+      // Mark all lines in all occurrences as duplicated
+      for (<f, startLine> <- occurrences) {
+        // Initialize set if needed
+        if (f notin duplicatedLines) {
+          duplicatedLines[f] = {};
+        }
+        
+        // Mark each line in this block as duplicated
+        for (int j <- [0 .. blockSize]) {
+          duplicatedLines[f] = duplicatedLines[f] + (startLine + j);
+        }
+      }
     }
   }
   
-  return totalLines == 0 ? 0 : (duplicateLines * 100) / totalLines;
+  // Phase 3: Count total unique duplicated lines
+  int totalDuplicatedLines = 0;
+  for (loc f <- duplicatedLines) {
+    totalDuplicatedLines += size(duplicatedLines[f]);
+  }
+  
+  // Return percentage (guaranteed to be <= 100)
+  return totalLines == 0 ? 0 : (totalDuplicatedLines * 100) / totalLines;
 }
 
 /**
+ * Normalize a block of lines for comparison
  * 
  * This function can be extended to:
  * - Remove whitespace differences
@@ -96,7 +130,11 @@ public int calculateDuplicationWithBlockSize(loc projectLocation, int blockSize)
 str normalizeBlock(list[str] lines) {
   str block = "";
   for (str line <- lines) {
-    block = block + trim(line) + "\n";
+    str trimmedLine = trim(line);
+    // Skip comment-only lines
+    if (trimmedLine != "" && !startsWith(trimmedLine, "//")) {
+      block = block + trimmedLine + "\n";
+    }
   }
   return trim(block);
 }
@@ -104,17 +142,17 @@ str normalizeBlock(list[str] lines) {
 /**
  * Get detailed duplication statistics
  * 
- * Returns information about duplicate blocks for analysis.
- * 
  * @param projectLocation - Location of the Java project
  * @param blockSize - Size of blocks to use
  * @return Tuple with (duplicatePercentage, uniqueBlocks, duplicateBlocks)
  */
 public tuple[int, int, int] getDuplicationStats(loc projectLocation, int blockSize) {
   M3 m = createModel(projectLocation);
-  map[str, int] blockCounts = ();
+  map[str, list[tuple[loc, int]]] blockOccurrences = ();
+  map[loc, set[int]] duplicatedLines = ();
   int totalLines = 0;
   
+  // Phase 1: Collect blocks
   for (loc f <- getJavaFiles(projectLocation)) {
     str content = readFileContent(f);
     if (content == "") continue;
@@ -122,30 +160,49 @@ public tuple[int, int, int] getDuplicationStats(loc projectLocation, int blockSi
     list[str] lines = split("\n", content);
     totalLines += size(lines);
     
-    for (int i <- [0 .. size(lines) - blockSize]) {
+    for (int i <- [0 .. size(lines) - blockSize + 1]) {
       str block = normalizeBlock([lines[i + j] | j <- [0 .. blockSize]]);
-      if (block in blockCounts) {
-        blockCounts[block] = blockCounts[block] + 1;
+      if (trim(block) == "") continue;
+      
+      tuple[loc, int] occurrence = <f, i>;
+      if (block in blockOccurrences) {
+        blockOccurrences[block] = blockOccurrences[block] + [occurrence];
       } else {
-        blockCounts[block] = 1;
+        blockOccurrences[block] = [occurrence];
       }
     }
   }
   
+  // Phase 2: Identify duplicates
   int uniqueBlocks = 0;
   int duplicateBlocks = 0;
-  int duplicateLines = 0;
   
-  for (str block <- domain(blockCounts)) {
-    if (blockCounts[block] == 1) {
+  for (str block <- blockOccurrences) {
+    list[tuple[loc, int]] occurrences = blockOccurrences[block];
+    
+    if (size(occurrences) == 1) {
       uniqueBlocks += 1;
     } else {
       duplicateBlocks += 1;
-      duplicateLines += blockSize * (blockCounts[block] - 1);
+      
+      // Mark lines as duplicated
+      for (<f, startLine> <- occurrences) {
+        if (f notin duplicatedLines) {
+          duplicatedLines[f] = {};
+        }
+        for (int j <- [0 .. blockSize]) {
+          duplicatedLines[f] = duplicatedLines[f] + (startLine + j);
+        }
+      }
     }
   }
   
-  int duplicatePercentage = totalLines == 0 ? 0 : (duplicateLines * 100) / totalLines;
+  // Phase 3: Count unique duplicated lines
+  int totalDuplicatedLines = 0;
+  for (loc f <- duplicatedLines) {
+    totalDuplicatedLines += size(duplicatedLines[f]);
+  }
+  
+  int duplicatePercentage = totalLines == 0 ? 0 : (totalDuplicatedLines * 100) / totalLines;
   return <duplicatePercentage, uniqueBlocks, duplicateBlocks>;
 }
-
