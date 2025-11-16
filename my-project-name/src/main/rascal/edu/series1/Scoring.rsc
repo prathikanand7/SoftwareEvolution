@@ -16,7 +16,7 @@ import String;
  * - Computing overall maintainability score
  *
  * NOTE: This module is intentionally PURE (no AST/M3). It only consumes
- * numeric values. Any AST/M3 traversal should live in Metrics modules.
+ * numeric values. Any AST/M3 traversal will live in Metrics modules.
  */
 
 // ============================================================================

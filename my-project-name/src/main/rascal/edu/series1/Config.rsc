@@ -32,21 +32,15 @@ public int DUPLICATION_THRESHOLD_NEUTRAL  = 10;
 public int DUPLICATION_THRESHOLD_MINUS    = 20;
 
 // Optional extras (used by Testability bonus if you choose)
-public int TEST_COVERAGE_THRESHOLD_PLUSPLUS = 80;  // %
-public int TEST_COVERAGE_THRESHOLD_PLUS     = 60;
-public int TEST_COVERAGE_THRESHOLD_NEUTRAL  = 40;
+public int TEST_COVERAGE_THRESHOLD_PLUSPLUS = 95;  // %
+public int TEST_COVERAGE_THRESHOLD_PLUS     = 80;
+public int TEST_COVERAGE_THRESHOLD_NEUTRAL  = 60;
 public int TEST_COVERAGE_THRESHOLD_MINUS    = 20;
 
 public int TEST_QUALITY_THRESHOLD_PLUSPLUS = 80;   // arbitrary 0..100 score
 public int TEST_QUALITY_THRESHOLD_PLUS     = 60;
 public int TEST_QUALITY_THRESHOLD_NEUTRAL  = 40;
 public int TEST_QUALITY_THRESHOLD_MINUS    = 20;
-
-// Optional coupling (lower is better)
-public int COUPLING_THRESHOLD_PLUSPLUS = 5;
-public int COUPLING_THRESHOLD_PLUS     = 10;
-public int COUPLING_THRESHOLD_NEUTRAL  = 20;
-public int COUPLING_THRESHOLD_MINUS    = 30;
 
 // ---------- Risk buckets (per-method distributions) ----------
 // 4-bucket risk profile: Low, Moderate, High, Very High

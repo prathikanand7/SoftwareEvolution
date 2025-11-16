@@ -10,11 +10,11 @@ import String;
 import Map;
 
 /**
- * Metrics module - pure metric calculation functions
+ * Metrics module - purely metrics calculation functions
  * 
  * This module contains all metric calculations as pure functions.
  * No I/O operations here - all data comes from parameters.
- * This makes functions easily testable and reusable.
+ * This makes the module easily testable and reusable.
  */
 
 // ============================================================================
