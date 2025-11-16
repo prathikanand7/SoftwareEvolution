@@ -4,11 +4,11 @@
 Please place the smallsql0.21_src and hsqldb-2.3.1 at the root level of this workspace. Both the project folders should be in the same level as my-project-name.
 
 ```
-Workspace
+Rascal Workspace
  ├── smallsql0.21_src (for reading all the files inside)
  ├── hsqldb-2.3.1 (for reading all the files inside)
  ├── my-project-name (for running the tool)
- 
+
 ```
 
 ## Overview
