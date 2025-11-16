@@ -78,3 +78,19 @@ public int WEIGHT_TESTABILITY_COVERAGE      = 34;
 
 public int WEIGHT_STABILITY_VOLUME          = 50;  // bonus aspect
 public int WEIGHT_STABILITY_COMPLEXITY      = 50;
+
+// ============================================================================
+// SIG/TÜV NORD CERT 4-Star Thresholds (Version 17.0, March 2025)
+// ============================================================================
+
+// Unit Interfacing (parameters per method)
+public int UNIT_INTERFACING_THRESHOLD_LOW = 3;    // <3 params = low risk
+public int UNIT_INTERFACING_THRESHOLD_MEDIUM = 5;  // 3-4 params = medium
+public int UNIT_INTERFACING_THRESHOLD_HIGH = 7;    // 5-6 params = high
+// 7+ params = very high risk
+
+// Module Coupling (incoming dependencies per module)
+public int MODULE_COUPLING_THRESHOLD_LOW = 10;     // ≤10 deps = low risk
+public int MODULE_COUPLING_THRESHOLD_MEDIUM = 20;  // 11-20 deps = medium
+public int MODULE_COUPLING_THRESHOLD_HIGH = 50;    // 21-50 deps = high
+// 51+ deps = very high risk

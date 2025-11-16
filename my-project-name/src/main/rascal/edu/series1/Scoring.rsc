@@ -341,3 +341,55 @@ public str calculateOverallMaintainability(str analysableysability, str changeab
   int rounded = (weighted + 50) / 100;
   return numericToScore(rounded);
 }
+
+/**
+ * Score Unit Interfacing metric based on risk profile
+ * 
+ * APPROACH: Use method counts instead of LOC distribution
+ * 
+ * Note: SIG/TÜV standard uses LOC percentages, but we approximate using
+ * method counts with adjusted thresholds.
+ */
+public str scoreUnitInterfacing(tuple[int, int, int, int] risk) {
+  int total = risk[0] + risk[1] + risk[2] + risk[3];
+  if (total == 0) return "++";
+  
+  // Calculate percentage in each category (METHOD COUNTS, not LOC)
+  // Use real division: multiply by 100.0 (real) to force real arithmetic
+  real mediumPlusPct = ((risk[1] + risk[2] + risk[3]) * 100.0) / total;
+  real highPlusPct = ((risk[2] + risk[3]) * 100.0) / total;
+  real veryHighPct = (risk[3] * 100.0) / total;
+  
+  // Thresholds adjusted for METHOD COUNTS (not SIG's LOC thresholds)
+  if (mediumPlusPct <= 25.0 && highPlusPct <= 10.0 && veryHighPct <= 3.0) return "++";
+  if (mediumPlusPct <= 40.0 && highPlusPct <= 20.0 && veryHighPct <= 7.0) return "+";
+  if (mediumPlusPct <= 60.0 && highPlusPct <= 35.0 && veryHighPct <= 15.0) return "o";
+  if (mediumPlusPct <= 75.0 && highPlusPct <= 50.0 && veryHighPct <= 25.0) return "-";
+  return "--";
+}
+
+/**
+ * Score Module Coupling metric based on risk profile
+ * 
+ * APPROACH: Use module counts instead of LOC distribution
+ * 
+ * Note: SIG/TÜV standard uses LOC percentages, but we approximate using
+ * module counts with adjusted thresholds.
+ */
+public str scoreModuleCoupling(tuple[int, int, int, int] risk) {
+  int total = risk[0] + risk[1] + risk[2] + risk[3];
+  if (total == 0) return "++";
+  
+  // Calculate percentage in each category (MODULE COUNTS, not LOC)
+  // Use real division: multiply by 100.0 (real) to force real arithmetic
+  real mediumPlusPct = ((risk[1] + risk[2] + risk[3]) * 100.0) / total;
+  real highPlusPct = ((risk[2] + risk[3]) * 100.0) / total;
+  real veryHighPct = (risk[3] * 100.0) / total;
+  
+  // Thresholds adjusted for MODULE COUNTS (not SIG's LOC thresholds)
+  if (mediumPlusPct <= 20.0 && highPlusPct <= 10.0 && veryHighPct <= 3.0) return "++";
+  if (mediumPlusPct <= 35.0 && highPlusPct <= 20.0 && veryHighPct <= 7.0) return "+";
+  if (mediumPlusPct <= 55.0 && highPlusPct <= 35.0 && veryHighPct <= 15.0) return "o";
+  if (mediumPlusPct <= 70.0 && highPlusPct <= 50.0 && veryHighPct <= 25.0) return "-";
+  return "--";
+}

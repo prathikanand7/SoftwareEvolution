@@ -34,9 +34,9 @@ test bool risk_profile_verification() {
 test bool maintainability_aspects_calculate() {
   str anal = calculateAnalysability(50000, 2);
   str change = calculateChangeability(25, 4, 2);
-  str test = calculateTestability(25, 4, 75);
+  str testability = calculateTestability(25, 4, 75);
   str stab = calculateStability(50000, 4);
-  return anal != "" && change != "" && test != "" && stab != "";
+  return anal != "" && change != "" && testability != "" && stab != "";
 }
 
 test bool overall_maintainability_calculates() {

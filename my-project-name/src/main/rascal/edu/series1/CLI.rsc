@@ -75,9 +75,12 @@ public void analyzeProject(loc projectLocation, str projectName) {
   int duplication = calculateDuplication(projectLocation);
   int testCoverage = calculateTestCoverage(projectLocation);
   int testQuality = calculateTestQuality(asts, testCoverage);
-  int coupling = calculateCoupling(asts);
   
-  // Calculate risk profiles
+  // Calculate NEW SIG/TÜV metrics (added)
+  tuple[int, int, int, int] interfacingRisk = calculateUnitInterfacingRiskProfile(asts);
+  tuple[int, int, int, int] couplingRisk = calculateModuleCouplingRiskProfile(projectLocation, asts);
+  
+  // Calculate risk profiles (original)
   tuple[int, int, int, int] sizeRisk = calculateUnitSizeRiskProfile(asts);
   tuple[int, int, int, int] complexRisk = calculateUnitComplexityRiskProfile(asts);
   
@@ -95,6 +98,16 @@ public void analyzeProject(loc projectLocation, str projectName) {
   int totalSizeRisk = sizeRisk[0] + sizeRisk[1] + sizeRisk[2] + sizeRisk[3];
   int totalComplexRisk = complexRisk[0] + complexRisk[1] + complexRisk[2] + complexRisk[3];
   
+  // Extract interfacing and coupling risk profile totals for verification
+  int interfacingRiskLow = UNIT_INTERFACING_THRESHOLD_LOW;
+  int interfacingRiskMedium = UNIT_INTERFACING_THRESHOLD_MEDIUM;
+  int interfacingRiskHigh = UNIT_INTERFACING_THRESHOLD_HIGH;
+  int couplingRiskLow = MODULE_COUPLING_THRESHOLD_LOW;
+  int couplingRiskMedium = MODULE_COUPLING_THRESHOLD_MEDIUM;
+  int couplingRiskHigh = MODULE_COUPLING_THRESHOLD_HIGH;
+  int totalInterfacingRisk = interfacingRisk[0] + interfacingRisk[1] + interfacingRisk[2] + interfacingRisk[3];
+  int totalCouplingRisk = couplingRisk[0] + couplingRisk[1] + couplingRisk[2] + couplingRisk[3];
+  
   // Calculate scores
   str volumeScore = scoreVolume(volume);
   str unitSizeScore = scoreUnitSize(unitSize);
@@ -102,7 +115,8 @@ public void analyzeProject(loc projectLocation, str projectName) {
   str duplicationScore = scoreDuplication(duplication);
   str testCoverageScore = scoreTestCoverage(testCoverage);
   str testQualityScore = scoreTestQuality(testQuality);
-  str couplingScore = scoreCoupling(coupling);
+  str interfacingScore = scoreUnitInterfacing(interfacingRisk);
+  str couplingScore = scoreModuleCoupling(couplingRisk);
   
   // Calculate maintainability aspects (with intermediate steps)
   str volScore = scoreVolume(volume);
@@ -154,10 +168,27 @@ public void analyzeProject(loc projectLocation, str projectName) {
   println("Duplication (%):                  <duplication> <duplicationScore>");
   println("Test Coverage (%):                <testCoverage> <testCoverageScore>");
   println("Test Quality (%):                 <testQuality> <testQualityScore>");
-  println("Coupling (avg deps/class):        <coupling> <couplingScore>");
+  println();
+
+  // Print SIG/TÜV metrics
+  println("SIG/TÜV BASED METRICS");
+  println(repeatChar("-", 80));
+  println("Unit Interfacing:                 <interfacingScore>");
+  println("  Low (0-<interfacingRiskLow - 1> params):       <interfacingRisk[0]> methods");
+  println("  Medium (<interfacingRiskLow>-<interfacingRiskMedium - 1> params):    <interfacingRisk[1]> methods");
+  println("  High (<interfacingRiskMedium>-<interfacingRiskHigh - 1> params):      <interfacingRisk[2]> methods");
+  println("  Very High (<interfacingRiskHigh>+ params):  <interfacingRisk[3]> methods");
+  println("  Verification: <interfacingRisk[0]> + <interfacingRisk[1]> + <interfacingRisk[2]> + <interfacingRisk[3]> = <totalInterfacingRisk> (should equal <totalMethods>)");
+  println();
+  println("Module Coupling:                  <couplingScore>");
+  println("  Low (\u2264<couplingRiskLow> deps):         <couplingRisk[0]> modules");
+  println("  Medium (<couplingRiskLow + 1>-<couplingRiskMedium> deps):    <couplingRisk[1]> modules");
+  println("  High (<couplingRiskMedium + 1>-<couplingRiskHigh> deps):      <couplingRisk[2]> modules");
+  println("  Very High (\u003e<couplingRiskHigh> deps):   <couplingRisk[3]> modules");
+  println("  Verification: <couplingRisk[0]> + <couplingRisk[1]> + <couplingRisk[2]> + <couplingRisk[3]> = <totalCouplingRisk> modules analyzed");
   println();
   
-// Print risk profiles with verification
+  // Print risk profiles with verification
   println("RISK PROFILES");
   println(repeatChar("-", 80));
   println("Unit Size Risk Distribution:");
@@ -220,4 +251,3 @@ public void analyzeProject(loc projectLocation, str projectName) {
 public void main() {
   analyzeProject(|project://smallsql0.21_src|, "SmallSQL");
 }
-

@@ -7,6 +7,7 @@ import lang::java::m3::AST;
 import IO;
 import List;
 import String;
+import Map;
 
 /**
  * Metrics module - pure metric calculation functions
@@ -276,34 +277,144 @@ public int calculateTestQuality(list[Declaration] asts, int testCoverage) {
 // ============================================================================
 
 /**
- * Calculate coupling metric (additional metric, bonus)
+ * Calculate Module Coupling risk profile
+ * Measures incoming dependencies per module (file/class)
  * 
- * Coupling measures dependencies between classes.
- * We count method invocations and field accesses.
- * Higher coupling indicates more dependencies and potential maintenance issues.
- * 
- * Algorithmic complexity: O(n) where n is the number of AST nodes
- * 
- * @param asts - List of AST declarations
- * @return Average coupling per class
+ * SIG/TÜV 4-star thresholds:
+ * - ≤10% of LOC in modules with >10 incoming dependencies
+ * - ≤5.6% in modules with >20 incoming dependencies
+ * - ≤1.9% in modules with >50 incoming dependencies
  */
-public int calculateCoupling(list[Declaration] asts) {
-  int totalCoupling = 0;
-  int classCount = 0;
+public map[loc, int] calculateModuleIncomingDependencies(loc projectLocation) {
+  M3 m = createModel(projectLocation);
+  map[loc, int] incomingDeps = ();
   
-  visit(asts) {
-    case \class(_, _, _, _, _, _, _): {
-      classCount += 1;
+  // Build a map of method -> containing class using containment relation
+  map[loc, loc] methodToClass = ();
+  for (<container, contained> <- m.containment) {
+    if ((container.scheme == "java+class" || container.scheme == "java+interface") &&
+        (contained.scheme == "java+method" || contained.scheme == "java+constructor")) {
+      methodToClass[contained] = container;
     }
   }
   
-  // Count method invocations and field accesses (indicators of coupling)
-  visit(asts) {
-    case \methodCall(_,_,_,_): totalCoupling += 1;
-    case \methodCall(_,_,_): totalCoupling += 1;
-    case \fieldAccess(_,_,_): totalCoupling += 1;
-    case \fieldAccess(_,_): totalCoupling += 1;
+  // Count incoming method calls per class
+  for (<from, to> <- m.methodInvocation) {
+    if (to in methodToClass) {
+      loc containingClass = methodToClass[to];
+      if (containingClass in incomingDeps) {
+        incomingDeps[containingClass] += 1;
+      } else {
+        incomingDeps[containingClass] = 1;
+      }
+    }
   }
   
-  return classCount == 0 ? 0 : totalCoupling / classCount;
+  return incomingDeps;
+}
+
+public tuple[int, int, int, int] calculateModuleCouplingRiskProfile(loc projectLocation, list[Declaration] asts) {
+  map[loc, int] incomingDeps = calculateModuleIncomingDependencies(projectLocation);
+  
+  int low = 0;      // 0-10 dependencies
+  int medium = 0;   // 11-20 dependencies
+  int high = 0;     // 21-50 dependencies
+  int veryHigh = 0; // 51+ dependencies
+  
+  // Get modules (classes) from AST - use class location from AST
+  map[loc, int] moduleLOC = ();
+  visit(asts) {
+    case c:\class(_, _, _, _, _, body, _): {
+      if (c.src?) {
+        moduleLOC[c.src] = c.src.end.line - c.src.begin.line + 1;
+      }
+    }
+  }
+  
+  // Match M3 classes with AST classes by file location
+  // Use file-level matching which is more reliable than exact location matching
+  M3 m = createModel(projectLocation);
+  
+  // Build a map from file location to dependency count (aggregate all classes in same file)
+  map[loc, int] fileDeps = ();
+  for (loc m3Class <- domain(incomingDeps)) {
+    loc fileLoc = m3Class.top;
+    if (fileLoc != |unknown:///|) {
+      if (fileLoc in fileDeps) {
+        fileDeps[fileLoc] += incomingDeps[m3Class];
+      } else {
+        fileDeps[fileLoc] = incomingDeps[m3Class];
+      }
+    }
+  }
+  
+  // Count modules in each risk category
+  // Match AST classes with file-level dependency counts
+  list[loc] modules = [moduleLoc | moduleLoc <- domain(moduleLOC)];
+  for (loc astClass <- modules) {
+    int deps = 0;
+    
+    // Try to find dependencies by matching file location
+    loc fileLoc = astClass.top;
+    if (fileLoc != |unknown:///| && fileLoc in fileDeps) {
+      deps = fileDeps[fileLoc];
+    } else {
+      // Fallback: try to match any M3 class in the same file
+      for (loc m3Class <- domain(incomingDeps)) {
+        if (m3Class.top == fileLoc && fileLoc != |unknown:///|) {
+          deps += incomingDeps[m3Class];
+        }
+      }
+    }
+    
+    if (deps <= 10)           low += 1;
+    else if (deps <= 20)      medium += 1;
+    else if (deps <= 50)      high += 1;
+    else                      veryHigh += 1;
+  }
+  
+  return <low, medium, high, veryHigh>;
+}
+
+// ============================================================================
+// UNIT INTERFACING METRIC (Additional metric)
+// ============================================================================
+
+/**
+ * Calculate Unit Interfacing risk profile
+ * Measures number of parameters per method
+ * 
+ * SIG/TÜV 4-star thresholds:
+ * - ≤15% of LOC in units with ≥3 parameters
+ * - ≤3.3% in units with ≥5 parameters  
+ * - ≤0.9% in units with ≥7 parameters
+ */
+public tuple[int, int, int, int] calculateUnitInterfacingRiskProfile(list[Declaration] asts) {
+  int low = 0;      // 0-2 parameters
+  int medium = 0;   // 3-4 parameters
+  int high = 0;     // 5-6 parameters
+  int veryHigh = 0; // 7+ parameters
+  
+  visit(asts) {
+    case \method(_, _, _, _, params, _, Statement body): {
+      if (body.src?) {
+        int paramCount = size(params);
+        if (paramCount < 3)           low += 1;
+        else if (paramCount < 5)      medium += 1;
+        else if (paramCount < 7)      high += 1;
+        else                          veryHigh += 1;
+      }
+    }
+    case \constructor(_, _, params, Statement body): {
+      if (body.src?) {
+        int paramCount = size(params);
+        if (paramCount < 3)           low += 1;
+        else if (paramCount < 5)      medium += 1;
+        else if (paramCount < 7)      high += 1;
+        else                          veryHigh += 1;
+      }
+    }
+  }
+  
+  return <low, medium, high, veryHigh>;
 }
