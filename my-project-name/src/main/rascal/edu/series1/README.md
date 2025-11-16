@@ -1,5 +1,16 @@
 # SIG Maintainability Model - Modular Architecture
 
+## Placing of folders to test the tool
+Please place the smallsql0.21_src and hsqldb-2.3.1 at the root level of this workspace. Both the project folders should be in the same level as my-project-name.
+
+```
+Workspace
+ ├── smallsql0.21_src (for reading all the files inside)
+ ├── hsqldb-2.3.1 (for reading all the files inside)
+ ├── my-project-name (for running the tool)
+ 
+```
+
 ## Overview
 
 This project implements the SIG maintainability model for Java projects. The code is organized into separate modules, each handling a specific part of the analysis. This makes the code easier to understand, test, and modify.
